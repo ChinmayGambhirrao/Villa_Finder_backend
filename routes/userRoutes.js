@@ -1,6 +1,7 @@
 import express from "express";
-import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import { User } from "../models/userModel.js";
 
 const router = express.Router();
 
@@ -28,10 +29,14 @@ router.post("/register", async (req, res) => {
         .json({ message: "Password must be at least 6 characters" });
     }
 
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
     // Create user
     const user = await User.create({
       email,
-      password,
+      password: hashedPassword,
     });
 
     // Generate JWT token
@@ -64,7 +69,7 @@ router.post("/login", async (req, res) => {
     }
 
     // Check password
-    const isMatch = await user.matchPassword(password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
